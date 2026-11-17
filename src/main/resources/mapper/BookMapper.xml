@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace 必须等于 Mapper 接口的全类名，写错就报 Invalid bound statement -->
+<mapper namespace="com.example.borrow.mapper.BookMapper">
+
+    <!-- 可复用的书名条件：有关键字才拼进去，两条查询共用，避免条件写得不一致 -->
+    <sql id="titleCondition">
+        <if test="title != null and title != ''">   <!-- 关键字非空才拼这段 -->
+            AND title LIKE CONCAT('%', #{title}, '%')  <!-- #{} 是预编译参数，防注入 -->
+        </if>
+    </sql>
+
+    <!-- 按关键字查图书列表 -->
+    <select id="selectByTitle" resultType="com.example.borrow.entity.Book">   <!-- 写全类名，IDE 也能认 -->
+        SELECT id, title, author, stock             <!-- 只查需要的列，别用 * -->
+        FROM book
+        <where>                                     <!-- where 会自动去掉多余的 AND -->
+            <include refid="titleCondition"/>       <!-- 引入上面的条件片段 -->
+        </where>
+        ORDER BY id                                 <!-- 按 id 排序，结果稳定 -->
+    </select>
+
+    <!-- 按主键查一本 -->
+    <select id="selectById" resultType="com.example.borrow.entity.Book">
+        SELECT id, title, author, stock
+        FROM book
+        WHERE id = #{id}                            <!-- 主键条件 -->
+    </select>
+
+    <!-- 新增图书；useGeneratedKeys 让自增主键回填到 book.id -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO book (title, author, stock)     <!-- 只插业务列 -->
+        VALUES (#{title}, #{author}, #{stock})      <!-- 值全部参数化 -->
+    </insert>
+
+    <!-- 修改图书信息：三个字段整体更新（PUT 的语义） -->
+    <update id="update">
+        UPDATE book
+        SET title = #{title},                       <!-- 新书名 -->
+        author = #{author},                     <!-- 新作者 -->
+        stock = #{stock}                        <!-- 新库存 -->
+        WHERE id = #{id}                            <!-- 按主键定位 -->
+    </update>
+
+    <!-- 借书扣库存：这条是本项目的核心，判断和扣减在一条 SQL 里完成 -->
+    <update id="decreaseStock">
+        UPDATE book
+        SET stock = stock - 1                       <!-- 库存减 1 -->
+        WHERE id = #{id}                            <!-- 指定书 -->
+        AND stock > 0                             <!-- 关键：库存大于 0 才扣得动 -->
+    </update>
+
+    <!-- 还书加库存 -->
+    <update id="increaseStock">
+        UPDATE book
+        SET stock = stock + 1                       <!-- 库存加 1 -->
+        WHERE id = #{id}                            <!-- 指定书 -->
+    </update>
+
+</mapper>

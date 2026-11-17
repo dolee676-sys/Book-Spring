@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.borrow.mapper.BorrowRecordMapper">
+
+    <!-- 插入借阅记录。borrow_date 由数据库默认值填，status 默认 0（借出） -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO borrow_record (user_id, book_id)   <!-- 只插两个外键 -->
+        VALUES (#{userId}, #{bookId})                  <!-- 外键不存在时数据库会拒绝 -->
+    </insert>
+
+    <!-- 按记录 id 查一条 -->
+    <select id="selectById" resultType="com.example.borrow.entity.BorrowRecord">
+        SELECT id, user_id, book_id, borrow_date, return_date, status
+        FROM borrow_record
+        WHERE id = #{id}                               <!-- 主键条件 -->
+    </select>
+
+    <!-- 某用户的借阅记录，连书名一起查（结果里有实体没有的字段，所以用 Map 接） -->
+    <select id="selectByUserId" resultType="map">
+        SELECT r.id            AS id,                  <!-- 记录 id -->
+        b.title         AS bookTitle,           <!-- 书名，别名就是 JSON 里的字段名 -->
+        r.borrow_date   AS borrowDate,          <!-- 借出时间 -->
+        r.return_date   AS returnDate,          <!-- 归还时间，null 表示未还 -->
+        r.status        AS status               <!-- 0 借出 1 已还 -->
+        FROM borrow_record r
+        JOIN book b ON b.id = r.book_id       <!-- 连表拿书名 -->
+        WHERE r.user_id = #{userId}                    <!-- 指定用户 -->
+        ORDER BY r.id DESC                             <!-- 新的在前 -->
+    </select>
+
+    <!-- 某本书当前未还被谁借走 -->
+    <select id="selectActiveByBookId" resultType="map">
+        SELECT r.id          AS recordId,              <!-- 记录 id -->
+        u.id          AS userId,                <!-- 借书人 id -->
+        u.name        AS userName,              <!-- 借书人姓名 -->
+        r.borrow_date AS borrowDate             <!-- 借出时间 -->
+        FROM borrow_record r
+        JOIN `user` u ON u.id = r.user_id     <!-- 连表拿姓名 -->
+        WHERE r.book_id = #{bookId}                    <!-- 指定书 -->
+        AND r.status = 0                             <!-- 只要未还的 -->
+        ORDER BY r.id                                  <!-- 按借出顺序 -->
+    </select>
+
+    <!-- 还书：状态置 1 并写归还时间；status = 0 保证不会重复还 -->
+    <update id="markReturned">
+        UPDATE borrow_record
+        SET status = 1,                                <!-- 改成已还 -->
+        return_date = NOW()                        <!-- 归还时间用数据库时间 -->
+        WHERE id = #{id}                               <!-- 指定记录 -->
+        AND status = 0                               <!-- 只有未还的才更新得动 -->
+    </update>
+
+</mapper>

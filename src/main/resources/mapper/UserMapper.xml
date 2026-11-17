@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.borrow.mapper.UserMapper">
+
+    <!-- 查所有用户 -->
+    <select id="selectAll" resultType="com.example.borrow.entity.User">
+        SELECT id, name, student_no                 <!-- 列名和属性靠驼峰转换对上 -->
+        FROM `user`                                 <!-- user 是保留字，必须加反引号 -->
+        ORDER BY id                                 <!-- 按 id 排序 -->
+    </select>
+
+    <!-- 按 id 查一个 -->
+    <select id="selectById" resultType="com.example.borrow.entity.User">
+        SELECT id, name, student_no
+        FROM `user`
+        WHERE id = #{id}                            <!-- 主键条件 -->
+    </select>
+
+    <!-- 新增用户，主键回填 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO `user` (name, student_no)       <!-- 学号有唯一索引，重复会报错 -->
+        VALUES (#{name}, #{studentNo})              <!-- 注意属性名是驼峰的 studentNo -->
+    </insert>
+
+</mapper>
