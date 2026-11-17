@@ -1,6 +1,6 @@
 # 图书借阅管理系统
 
->基于 Spring Boot 3.5.16 + MyBatis 3.0.5 +MySQL 8 的图书借阅后端
+> 基于 Spring Boot 3.5.16 + MyBatis 3.0.5 + MySQL 8 的图书借阅后端
 
 ## 功能
 
@@ -12,14 +12,51 @@
 
 
 ## 技术栈
-- JDK 21 
+- JDK 21 及以上（pom 中编译目标为 21）
 - Spring Boot 3.5.16（spring-boot-starter-web）
 - MyBatis Spring Boot Starter 3.0.5，SQL 写在 XML 里，接口只声明方法
 - MySQL 8（mysql-connector-j）
 
+## 数据库
+
+库名 `borrow_demo`，三张表：
+
+- `book` —— 图书，`stock` 是库存，借出一本减一
+- `user` —— 用户，`student_no` 有唯一索引（表名是保留字，SQL 里要写反引号）
+- `borrow_record` —— 借阅记录，`status` 0 表示借出中、1 表示已归还，`user_id`/`book_id` 各有一个外键
+
 ## 启动
-    mvn spring-boot:run
-    或者在 IDEA 里运行 `BorrowApplication`。默认端口 8080，改端口就改 yml 里的 `server.port`
+
+### 1. 建库并导入演示数据
+
+```bash
+mysql -uroot -p < sql/01-schema.sql
+mysql -uroot -p < sql/02-data.sql
+```
+
+`01-schema.sql` 会先删表再建表，可以重复执行，但已有数据会被清空。
+
+### 2. 提供数据库密码
+
+密码不写在代码里，`application.yml` 读的是环境变量，默认为空：
+
+```yaml
+password: ${DB_PASSWORD:}
+```
+
+不提供这个变量应用照样能启动，但第一次查库会返回 500（连接池是懒加载的）。
+
+### 3. 运行
+
+```bash
+DB_PASSWORD=你的密码 mvn spring-boot:run
+```
+
+或者在 IDEA 里运行 `BorrowApplication`，Run Configuration 的 Environment variables 里加 `DB_PASSWORD`。
+
+### 4. 验证
+
+默认端口 8080，浏览器打开 <http://localhost:8080/api/books>，返回 4 本书的 JSON 即成功。
 
 ## 接口
 
